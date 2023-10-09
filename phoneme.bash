@@ -1,9 +1,9 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-JVSDIR=/path/to/jvs_hiho_ver1/
-OUTDIR_JULIUS=./aligned_labels_julius/
-OUTDIR_OPENJTALK=./aligned_labels_openjtalk/
-JULIUS_HMM_PATH=/path/to/jnas-mono-16mix-gid.binhmm
+JVSDIR=~/Programming/Python/PausePrediction/data/jvs_takeshun_ver1
+OUTDIR_JULIUS=./aligned_labels_julius_takehun
+OUTDIR_OPENJTALK=./aligned_labels_openjtalk_takeshun
+JULIUS_HMM_PATH="/Users/takeshitashunji/Programming/Python/PausePrediction/segmentation-kit/models/hmmdefs_monof_mix16_gid.binhmm"
 
 TMPDIR=/tmp/jvs_alignment
 
@@ -26,6 +26,7 @@ paste <(echo "$names") <(cat ./voiceactoress100_spaced_julius.txt) |\
 # for julius label
 for person in $(ls -d $JVSDIR/jvs*/ | grep -o 'jvs[0-9][0-9][0-9]'); do
     echo $person
+    echo $names
 
     mkdir $TMPDIR/audio
     find $JVSDIR/$person/parallel100/wav24kHz16bit -name '*.wav' |\
@@ -52,63 +53,63 @@ for person in $(ls -d $JVSDIR/jvs*/ | grep -o 'jvs[0-9][0-9][0-9]'); do
 done
 
 # for OpenJTalk label
-mkdir $TMPDIR/openjtalk_phoneme
+# mkdir $TMPDIR/openjtalk_phoneme
 
-echo "$names" |\
-while read name; do
-    echo "
-        openjtalk_label_getter \
-            '$(cat $TMPDIR/text/$name.txt | nkf --hiragana)' \
-            --output_wave_path /tmp/openjtalk_label_getter_$name.wav \
-            --output_log_path /tmp/openjtalk_label_getter_$name.txt |\
-        awk '{print \$3}' \
-        > $TMPDIR/openjtalk_phoneme/$name.lab
-    "
-done |\
-parallel --progress {}
+# echo "$names" |\
+# while read name; do
+#     echo "
+#         openjtalk_label_getter \
+#             '$(cat $TMPDIR/text/$name.txt | nkf --hiragana)' \
+#             --output_wave_path /tmp/openjtalk_label_getter_$name.wav \
+#             --output_log_path /tmp/openjtalk_label_getter_$name.txt |\
+#         awk '{print \$3}' \
+#         > $TMPDIR/openjtalk_phoneme/$name.lab
+#     "
+# done |\
+# parallel --progress {}
 
-for person in $(ls -d $JVSDIR/jvs*/ | grep -o 'jvs[0-9][0-9][0-9]'); do
-    echo $person
-    mkdir $OUTDIR_OPENJTALK/$person
+# for person in $(ls -d $JVSDIR/jvs*/ | grep -o 'jvs[0-9][0-9][0-9]'); do
+#     echo $person
+#     mkdir $OUTDIR_OPENJTALK/$person
 
-    mkdir $TMPDIR/audio
-    find $JVSDIR/$person/parallel100/wav24kHz16bit -name '*.wav' |\
-        parallel sox {} $TMPDIR/audio/{/} channels 1 rate 16k
+#     mkdir $TMPDIR/audio
+#     find $JVSDIR/$person/parallel100/wav24kHz16bit -name '*.wav' |\
+#         parallel sox {} $TMPDIR/audio/{/} channels 1 rate 16k
 
-    mkdir $TMPDIR/julius_phoneme
-    echo "$names" |\
-    parallel julius4seg_segment \
-        $TMPDIR/audio/{}.wav \
-        $TMPDIR/text/{}.txt \
-        $TMPDIR/julius_phoneme/{}.lab \
-        --hmm_model $JULIUS_HMM_PATH \
-        --like_openjtalk \
+#     mkdir $TMPDIR/julius_phoneme
+#     echo "$names" |\
+#     parallel julius4seg_segment \
+#         $TMPDIR/audio/{}.wav \
+#         $TMPDIR/text/{}.txt \
+#         $TMPDIR/julius_phoneme/{}.lab \
+#         --hmm_model $JULIUS_HMM_PATH \
+#         --like_openjtalk \
 
-    # for failed files
-    join -v 1 <(echo "$names") <(ls $TMPDIR/julius_phoneme | xargs basename -s .lab) |\
-    parallel julius4seg_segment \
-        $TMPDIR/audio/{}.wav \
-        $TMPDIR/text/{}.txt \
-        $TMPDIR/julius_phoneme/{}.lab \
-        --hmm_model $JULIUS_HMM_PATH \
-        --like_openjtalk \
-        --only_2nd_path \
+#     # for failed files
+#     join -v 1 <(echo "$names") <(ls $TMPDIR/julius_phoneme | xargs basename -s .lab) |\
+#     parallel julius4seg_segment \
+#         $TMPDIR/audio/{}.wav \
+#         $TMPDIR/text/{}.txt \
+#         $TMPDIR/julius_phoneme/{}.lab \
+#         --hmm_model $JULIUS_HMM_PATH \
+#         --like_openjtalk \
+#         --only_2nd_path \
 
-    echo "$names" |\
-    while read name; do
-        lab_julius=$TMPDIR/julius_phoneme/$name.lab
-        lab_openjtalk=$TMPDIR/openjtalk_phoneme/$name.lab
-        if [ ! -e "$lab_julius" ]; then continue; fi
+#     echo "$names" |\
+#     while read name; do
+#         lab_julius=$TMPDIR/julius_phoneme/$name.lab
+#         lab_openjtalk=$TMPDIR/openjtalk_phoneme/$name.lab
+#         if [ ! -e "$lab_julius" ]; then continue; fi
 
-        diff -y \
-            <(cat $lab_julius | awk '{print $3}') \
-            $lab_openjtalk |\
-        grep -v '>' | awk '{print $NF}' > /tmp/openjtalk_label.txt
+#         diff -y \
+#             <(cat $lab_julius | awk '{print $3}') \
+#             $lab_openjtalk |\
+#         grep -v '>' | awk '{print $NF}' > /tmp/openjtalk_label.txt
 
-        paste $lab_julius /tmp/openjtalk_label.txt | awk '{print $1, $2, $4}' \
-        > $OUTDIR_OPENJTALK/$person/$name.lab
-    done
+#         paste $lab_julius /tmp/openjtalk_label.txt | awk '{print $1, $2, $4}' \
+#         > $OUTDIR_OPENJTALK/$person/$name.lab
+#     done
 
-    rm -r $TMPDIR/audio
-    rm -r $TMPDIR/julius_phoneme
-done
+#     rm -r $TMPDIR/audio
+#     rm -r $TMPDIR/julius_phoneme
+# done

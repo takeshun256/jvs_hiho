@@ -1,12 +1,15 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-JVSDIR=/path/to/jvs_ver1/
-OUTDIR=/path/to/jvs_hiho_ver1/
+# JVSDIR=/path/to/jvs_ver1/
+JVSDIR="~//Programming/Python/PausePrediction/data/jvs_ver1"
+OUTDIR="~/Programming/Python/PausePrediction/data/jvs_takeshun_ver1"
+# OUTDIR=/path/to/jvs_hiho_ver1/
 
-mkdir $OUTDIR
+mkdir -p $OUTDIR
 
 # link all wave file
-for speaker in jvs{001..100}; do
+for speaker_number in $(seq -f '%03g' 1 100); do
+    speaker="jvs${speaker_number}"
     echo $speaker
     for corpus in falset10 nonpara30 parallel100 whisper10; do
         mkdir -p $OUTDIR/$speaker/$corpus/wav24kHz16bit
